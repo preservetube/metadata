@@ -3,7 +3,7 @@ const { Innertube } = require('youtubei.js');
 const app = express()
 
 const maxRetries = 5
-const platforms = ['YTSTUDIO_ANDROID', 'WEB', 'iOS', 'YTMUSIC_ANDROID', 'YTMUSIC', 'TV_EMBEDDED']
+const platforms = ['YTSTUDIO_ANDROID', 'WEB', 'YTMUSIC_ANDROID', 'YTMUSIC', 'TV_EMBEDDED']
 
 app.get('/video/:id', async (req, res) => {
     let error = ''
