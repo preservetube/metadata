@@ -1,0 +1,8 @@
+version: "3.3"
+
+services:
+  metadata:
+    container_name: preservetube-metadata
+    image: ghcr.io/preservetube/metadata
+    network_mode: container:gluetun
+    restart: on-failure
