@@ -46,7 +46,7 @@ app.get('/channel/:id', async (req, res) => {
         try {
             const platform = platforms[retries % platforms.length];
             const yt = await Innertube.create();
-            const info = await yt.getChannel(id, platform);
+            const info = await yt.getChannel(req.params.id, platform);
 
             if (!info) {
                 error = 'ErrorCantConnectToServiceAPI'
@@ -65,7 +65,7 @@ app.get('/videos/:id', async (req, res) => {
     try {
         const videos = [];
         const yt = await Innertube.create();
-        const channel = await yt.getChannel(id);
+        const channel = await yt.getChannel(req.params.id);
         let json = await channel.getVideos();
     
         videos.push(...json.videos);
