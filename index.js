@@ -5,6 +5,31 @@ const app = express()
 const maxRetries = 5
 const platforms = ['YTSTUDIO_ANDROID', 'WEB', 'YTMUSIC_ANDROID', 'YTMUSIC', 'TV_EMBEDDED']
 
+app.get('/health', async (req, res) => {
+    try {
+        const urls = ['/video/sRMMwpDTs5k', '/channel/UCRijo3ddMTht_IHyNSNXpNQ', '/videos/UCRijo3ddMTht_IHyNSNXpNQ']
+
+        const results = await Promise.all(urls.map(async (url) => {
+            const response = await fetch(`http://localhost:8008${url}`);
+            const jsonData = await response.json();
+            const status = jsonData.error ? 'unhealthy' : 'healthy';
+            return { url, status };
+        }));
+
+        console.log('Health check results:', results);
+
+        const isHealthy = results.every(result => result.status === 'healthy');
+        if (isHealthy) {
+            res.status(200).json({ message: 'All endpoints are healthy', results });
+        } else {
+            res.status(500).json({ error: 'Health check failed', results });
+        }
+    } catch (error) {
+        console.error('Health check failed:', error.message);
+        res.status(500).json({ error: 'Health check failed', results: [], errorMessage: error.message });
+    }
+})
+
 app.get('/video/:id', async (req, res) => {
     let error = ''
 
