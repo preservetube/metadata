@@ -7,7 +7,7 @@ const platforms = ['YTSTUDIO_ANDROID', 'WEB', 'YTMUSIC_ANDROID', 'YTMUSIC', 'TV_
 
 app.get('/health', async (req, res) => {
     try {
-        const urls = ['/video/sRMMwpDTs5k', '/channel/UCRijo3ddMTht_IHyNSNXpNQ', '/videos/UCRijo3ddMTht_IHyNSNXpNQ']
+        const urls = ['/video/sRMMwpDTs5k', '/channel/UCRijo3ddMTht_IHyNSNXpNQ', '/videos/UCRijo3ddMTht_IHyNSNXpNQ', '/cobalt']
 
         const results = await Promise.all(urls.map(async (url) => {
             const response = await fetch(`http://localhost:8008${url}`);
@@ -109,6 +109,34 @@ app.get('/videos/:id', async (req, res) => {
         const page = await json.getContinuation();
         return page;
     }
+})
+
+app.get('/cobalt', async (req, res) => {
+    let json = {
+        error: 'unreachable'
+    }
+
+    for (let retries = 0; retries < maxRetries; retries++) {
+        try {
+            json = await (await fetch('http://gluetun:9000/api/json', {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    'url': 'https://www.youtube.com/watch?v=WIKqgE4BwAY'
+                })
+            })).json()
+
+            if (json.error) continue
+            return res.json(json)
+        } catch (error) {
+            continue
+        }
+    }
+
+    res.json(json)
 })
 
 app.listen(8008, () => {
