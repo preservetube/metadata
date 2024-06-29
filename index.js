@@ -16,7 +16,7 @@ const platforms = ['iOS', 'YTSTUDIO_ANDROID', 'WEB', 'YTMUSIC_ANDROID', 'YTMUSIC
 
 app.get('/health', async (req, res) => {
     try {
-        const urls = ['/video/sRMMwpDTs5k', '/channel/UCRijo3ddMTht_IHyNSNXpNQ', '/videos/UCRijo3ddMTht_IHyNSNXpNQ', '/cobalt']
+        const urls = ['/video/sRMMwpDTs5k', '/channel/UCRijo3ddMTht_IHyNSNXpNQ', '/videos/UCRijo3ddMTht_IHyNSNXpNQ']
 
         const results = await Promise.all(urls.map(async (url) => {
             const response = await fetch(`http://localhost:8008${url}`);
