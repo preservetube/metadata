@@ -1,9 +1,18 @@
 const express = require('express')
-const { Innertube } = require('youtubei.js');
+const { Innertube, Utils } = require('youtubei.js');
+const hr = require('@tsmx/human-readable')
+
+const ffmpeg = require('fluent-ffmpeg')
+const ffmpegStatic = require('ffmpeg-static')
+const fs = require('node:fs')
+
 const app = express()
+require('express-ws')(app)
+
+ffmpeg.setFfmpegPath(ffmpegStatic)
 
 const maxRetries = 5
-const platforms = ['YTSTUDIO_ANDROID', 'WEB', 'YTMUSIC_ANDROID', 'YTMUSIC', 'TV_EMBEDDED']
+const platforms = ['iOS', 'YTSTUDIO_ANDROID', 'WEB', 'YTMUSIC_ANDROID', 'YTMUSIC', 'TV_EMBEDDED']
 
 app.get('/health', async (req, res) => {
     try {
@@ -111,33 +120,103 @@ app.get('/videos/:id', async (req, res) => {
     }
 })
 
-app.get('/cobalt', async (req, res) => {
-    let json = {
-        error: 'unreachable'
+app.ws('/download/:id/:quality', async (ws, req) => {
+    const yt = await Innertube.create();
+    const info = await yt.getInfo(req.params.id, 'iOS');
+
+    const videoOptions = {
+        format: 'mp4',
+        quality: req.params.quality,
+        type: 'video'
+    }
+    const videoFormat = info.chooseFormat(videoOptions)
+    const videoStream = await info.download(videoOptions)
+    const videoWriteStream = fs.createWriteStream(`./output/${req.params.id}_video.mp4`)
+
+    let videoTotal = videoFormat.content_length;
+    let videoDownloaded = 0;
+    let videoStartTime = Date.now();
+    const videoPrecentages = []
+
+    for await (const chunk of Utils.streamToIterable(videoStream)) {
+        videoWriteStream.write(chunk);
+        videoDownloaded += chunk.length;
+        
+        let elapsedTime = (Date.now() - videoStartTime) / 1000; 
+        let progress = videoDownloaded / videoTotal;
+        let speedInMBps = (videoDownloaded / (1024 * 1024)) / elapsedTime; 
+        let remainingTime = (videoTotal - videoDownloaded) / (speedInMBps * 1024 * 1024); 
+
+        if (videoPrecentages.includes((progress*100).toFixed(0))) continue 
+        videoPrecentages.push((progress*100).toFixed(0))
+        
+        ws.send(`[video] ${(progress * 100).toFixed(2)}% of ${hr.fromBytes(videoTotal)} at ${speedInMBps.toFixed(2)} MB/s ETA ${secondsToTime(remainingTime.toFixed(0))}`)
     }
 
-    for (let retries = 0; retries < maxRetries; retries++) {
-        try {
-            json = await (await fetch('http://127.0.0.1:9000/api/json', {
-                method: 'POST',
-                headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    'url': 'https://www.youtube.com/watch?v=WIKqgE4BwAY'
-                })
-            })).json()
+    ws.send('The video has been downloaded. Downloading the audio.')
 
-            if (json.error) continue
-            return res.json(json)
-        } catch (error) {
-            continue
-        }
+    const audioOptions = {
+        type: 'audio',
+        quality: 'bestefficiency'
+    }
+    const audioFormat = info.chooseFormat(audioOptions)
+    const audioStream = await info.download(audioOptions)
+    const audioWriteStream = fs.createWriteStream(`./output/${req.params.id}_audio.mp4`)
+
+    let audioTotal = audioFormat.content_length;
+    let audioDownloaded = 0;
+    let audioStartTime = Date.now();
+    const audioPrecentages = []
+
+    for await (const chunk of Utils.streamToIterable(audioStream)) {
+        audioWriteStream.write(chunk);
+        audioDownloaded += chunk.length;
+        
+        let elapsedTime = (Date.now() - audioStartTime) / 1000; 
+        let progress = audioDownloaded / audioTotal;
+        let speedInMBps = (audioDownloaded / (1024 * 1024)) / elapsedTime; 
+        let remainingTime = (audioTotal - audioDownloaded) / (speedInMBps * 1024 * 1024); 
+
+        if (audioPrecentages.includes((progress*100).toFixed(0))) continue 
+        audioPrecentages.push((progress*100).toFixed(0))
+        
+        ws.send(`[audio] ${(progress * 100).toFixed(2)}% of ${hr.fromBytes(audioTotal)} at ${speedInMBps.toFixed(2)} MB/s ETA ${secondsToTime(remainingTime.toFixed(0))}`)
     }
 
-    res.json(json)
-})
+    ws.send('Downloaded video and audio. Merging them together.')
+
+    await mergeIt(`./output/${req.params.id}_audio.mp4`, `./output/${req.params.id}_video.mp4`, `./output/${req.params.id}.mp4`)
+    fs.rmSync(`./output/${req.params.id}_audio.mp4`)
+    fs.rmSync(`./output/${req.params.id}_video.mp4`)
+
+    ws.send('done')
+    ws.close()
+});
+
+function secondsToTime(seconds) {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    const formattedSeconds = remainingSeconds < 10 ? '0' + remainingSeconds : remainingSeconds;
+    return `${minutes}:${formattedSeconds}`;
+}
+
+function mergeIt(audioPath, videoPath, outputPath) {
+    return new Promise((resolve, reject) => {
+        ffmpeg()
+            .addInput(videoPath)
+            .addInput(audioPath)
+            .outputOptions('-c:v copy') 
+            .outputOptions('-c:a aac') 
+            .output(outputPath)
+            .on('end', () => {
+                resolve('Merging finished!');
+            })
+            .on('error', (err) => {
+                reject(new Error('An error occurred: ' + err.message));
+            })
+            .run();
+    });
+}
 
 app.listen(8008, () => {
     console.log('the metadata server is up.')
