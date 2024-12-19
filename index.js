@@ -186,8 +186,9 @@ app.ws('/download/:id/:quality', async (ws, req) => {
     ws.send('Downloaded video and audio. Merging them together.')
 
     await mergeIt(`./output/${req.params.id}_audio.mp4`, `./output/${req.params.id}_video.mp4`, `./output/${req.params.id}.mp4`)
-    fs.rmSync(`./output/${req.params.id}_audio.mp4`)
-    fs.rmSync(`./output/${req.params.id}_video.mp4`)
+    
+    if (fs.existsSync(`./output/${req.params.id}_audio.mp4`)) fs.rmSync(`./output/${req.params.id}_audio.mp4`)
+    if (fs.existsSync(`./output/${req.params.id}_video.mp4`)) fs.rmSync(`./output/${req.params.id}_video.mp4`)
 
     ws.send('done')
     ws.close()
