@@ -122,7 +122,7 @@ app.get('/videos/:id', async (req, res) => {
 
 app.ws('/download/:id/:quality', async (ws, req) => {
     const yt = await Innertube.create();
-    const info = await yt.getInfo(req.params.id, 'iOS');
+    const info = await yt.getInfo(req.params.id, 'ANDROID');
 
     const videoOptions = {
         format: 'mp4',
