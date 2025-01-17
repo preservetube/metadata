@@ -122,7 +122,7 @@ app.get('/videos/:id', async (req, res) => {
 
 app.ws('/download/:id/:quality', async (ws, req) => {
     const yt = await Innertube.create();
-    const info = await yt.getInfo(req.params.id, 'ANDROID');
+    const info = await yt.getInfo(req.params.id, 'WEB_EMBEDDED');
 
     const videoOptions = {
         format: 'mp4',
@@ -153,39 +153,43 @@ app.ws('/download/:id/:quality', async (ws, req) => {
         ws.send(`[video] ${(progress * 100).toFixed(2)}% of ${hr.fromBytes(videoTotal)} at ${speedInMBps.toFixed(2)} MB/s ETA ${secondsToTime(remainingTime.toFixed(0))}`)
     }
 
-    ws.send('The video has been downloaded. Downloading the audio.')
+    ws.send(`The video has been downloaded. ${!videoFormat.has_audio ? ' Downloading the audio.' : ''}`)
 
-    const audioOptions = {
-        type: 'audio',
-        quality: 'bestefficiency'
+    if (!videoFormat.has_audio) {
+        const audioOptions = {
+            type: 'audio',
+            quality: 'bestefficiency'
+        }
+        const audioFormat = info.chooseFormat(audioOptions)
+        const audioStream = await info.download(audioOptions)
+        const audioWriteStream = fs.createWriteStream(`./output/${req.params.id}_audio.mp4`)
+    
+        let audioTotal = audioFormat.content_length;
+        let audioDownloaded = 0;
+        let audioStartTime = Date.now();
+        const audioPrecentages = []
+    
+        for await (const chunk of Utils.streamToIterable(audioStream)) {
+            audioWriteStream.write(chunk);
+            audioDownloaded += chunk.length;
+            
+            let elapsedTime = (Date.now() - audioStartTime) / 1000; 
+            let progress = audioDownloaded / audioTotal;
+            let speedInMBps = (audioDownloaded / (1024 * 1024)) / elapsedTime; 
+            let remainingTime = (audioTotal - audioDownloaded) / (speedInMBps * 1024 * 1024); 
+    
+            if (audioPrecentages.includes((progress*100).toFixed(0))) continue 
+            audioPrecentages.push((progress*100).toFixed(0))
+            
+            ws.send(`[audio] ${(progress * 100).toFixed(2)}% of ${hr.fromBytes(audioTotal)} at ${speedInMBps.toFixed(2)} MB/s ETA ${secondsToTime(remainingTime.toFixed(0))}`)
+        }
+    
+        ws.send('Downloaded video and audio. Merging them together.')
+    
+        await mergeIt(`./output/${req.params.id}_audio.mp4`, `./output/${req.params.id}_video.mp4`, `./output/${req.params.id}.mp4`)
+    } else {
+        fs.renameSync(`./output/${req.params.id}_video.mp4`, `./output/${req.params.id}.mp4`)
     }
-    const audioFormat = info.chooseFormat(audioOptions)
-    const audioStream = await info.download(audioOptions)
-    const audioWriteStream = fs.createWriteStream(`./output/${req.params.id}_audio.mp4`)
-
-    let audioTotal = audioFormat.content_length;
-    let audioDownloaded = 0;
-    let audioStartTime = Date.now();
-    const audioPrecentages = []
-
-    for await (const chunk of Utils.streamToIterable(audioStream)) {
-        audioWriteStream.write(chunk);
-        audioDownloaded += chunk.length;
-        
-        let elapsedTime = (Date.now() - audioStartTime) / 1000; 
-        let progress = audioDownloaded / audioTotal;
-        let speedInMBps = (audioDownloaded / (1024 * 1024)) / elapsedTime; 
-        let remainingTime = (audioTotal - audioDownloaded) / (speedInMBps * 1024 * 1024); 
-
-        if (audioPrecentages.includes((progress*100).toFixed(0))) continue 
-        audioPrecentages.push((progress*100).toFixed(0))
-        
-        ws.send(`[audio] ${(progress * 100).toFixed(2)}% of ${hr.fromBytes(audioTotal)} at ${speedInMBps.toFixed(2)} MB/s ETA ${secondsToTime(remainingTime.toFixed(0))}`)
-    }
-
-    ws.send('Downloaded video and audio. Merging them together.')
-
-    await mergeIt(`./output/${req.params.id}_audio.mp4`, `./output/${req.params.id}_video.mp4`, `./output/${req.params.id}.mp4`)
     
     if (fs.existsSync(`./output/${req.params.id}_audio.mp4`)) fs.rmSync(`./output/${req.params.id}_audio.mp4`)
     if (fs.existsSync(`./output/${req.params.id}_video.mp4`)) fs.rmSync(`./output/${req.params.id}_video.mp4`)
