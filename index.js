@@ -134,6 +134,12 @@ app.ws('/download/:id/:quality', async (ws, req) => {
     const videoWriteStream = fs.createWriteStream(`./output/${req.params.id}_video.mp4`)
 
     let videoTotal = videoFormat.content_length;
+    if (videoTotal > (1_048_576 * 150)) {
+        ws.send('Is this content considered high risk? If so, please email me at admin@preservetube.com.')
+        ws.send('This video is too large, and unfortunately, Preservetube does not have unlimited storage.')
+        return ws.close()
+    }
+    
     let videoDownloaded = 0;
     let videoStartTime = Date.now();
     const videoPrecentages = []
