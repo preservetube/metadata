@@ -135,8 +135,8 @@ app.ws('/download/:id/:quality', async (ws, req) => {
 
     let videoTotal = videoFormat.content_length;
     if (videoTotal > (1_048_576 * 150)) {
-        ws.send('<br/><b>Is this content considered high risk? If so, please email me at admin@preservetube.com.</b>');
-        ws.send('<b>This video is too large, and unfortunately, Preservetube does not have unlimited storage.</b><br/>');        
+        ws.send('<h2>Is this content considered high risk? If so, please email me at admin@preservetube.com.</h2><br/>');
+        ws.send('<br/><h2>This video is too large, and unfortunately, Preservetube does not have unlimited storage.</h2>');        
         return ws.close()
     }
     
