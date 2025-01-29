@@ -122,7 +122,11 @@ app.get('/videos/:id', async (req, res) => {
 
 app.ws('/download/:id/:quality', async (ws, req) => {
   const yt = await Innertube.create();
-  const info = await yt.getInfo(req.params.id, 'WEB_EMBEDDED');
+  const info = await yt.getInfo(req.params.id, 'ANDROID');
+  if (info.playability_status.status !== 'OK') {
+    ws.send(`This video is not available for download (${info.playability_status.status} ${info.playability_status.reason}).`);
+    return ws.close()
+  }
 
   const videoOptions = {
     format: 'mp4',
