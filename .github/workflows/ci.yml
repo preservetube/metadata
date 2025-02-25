@@ -10,18 +10,12 @@ jobs:
     permissions:
       contents: read
       packages: write
-      id-token: write
     
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          registry-url: "https://npm.pkg.github.com"
-          scope: "@${{ github.repository_owner }}"
+      - name: create .npmrc
+        run: 'echo -e "//npm.pkg.github.com/:_authToken=$GITHUB_TOKEN\n@preservetube:registry=https://npm.pkg.github.com/" > .secret_npmrc'
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v2
@@ -36,7 +30,8 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
+          context: .
           push: true
+          secret-files: |
+            "npmrc=./.secret_npmrc"
           tags: ghcr.io/${{ github.repository }}:latest
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
