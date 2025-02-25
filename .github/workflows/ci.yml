@@ -13,9 +13,7 @@ jobs:
     
     steps:
       - name: create .npmrc
-        run: 'echo -e "//npm.pkg.github.com/:_authToken=$GITHUB_TOKEN\n@preservetube:registry=https://npm.pkg.github.com/" > .secret_npmrc'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: echo -e "//npm.pkg.github.com/:_authToken=${{ secrets.NPM_TOKEN }}\n@preservetube:registry=https://npm.pkg.github.com/" > .secret_npmrc
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v2
