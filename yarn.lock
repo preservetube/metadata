@@ -393,7 +393,7 @@ isexe@^2.0.0:
   resolved "https://registry.yarnpkg.com/isexe/-/isexe-2.0.0.tgz#e8fbf374dc556ff8947a10dcb0572d633f2cfa10"
   integrity sha512-RHxMLp9lnKHGHRng9QFhRCMbYAcVpn69smSGcq3f36xjgVVWThj4qqLbTLlq7Ssj8B+fIQ1EuCEGI2lKsyQeIw==
 
-jintr@^3.2.1:
+jintr@^3.2.0:
   version "3.2.1"
   resolved "https://registry.yarnpkg.com/jintr/-/jintr-3.2.1.tgz#ea6719485c9ff5f14ca7f9131990040d4fdfe1be"
   integrity sha512-yjKUBuwTTg4nc4izMysxuIk0BKh45hnbc1KnXE6LxagIGZn5od+I2elpuRY9IIm3EiKiUZxhxV89a0iX+xoEZg==
@@ -663,12 +663,12 @@ ws@^7.4.6:
   resolved "https://registry.yarnpkg.com/ws/-/ws-7.5.10.tgz#58b5c20dc281633f6c19113f39b349bd8bd558d9"
   integrity sha512-+dbF1tHwZpXcbOJdVOkzLDxZP1ailvSxM6ZweXTegylPny803bFhA+vqBYw4s31NSAk4S2Qz+AKXK9a4wkdjcQ==
 
-youtubei.js@^13.1.0:
-  version "13.1.0"
-  resolved "https://registry.yarnpkg.com/youtubei.js/-/youtubei.js-13.1.0.tgz#1e15da01e58c782ab6fb7cc9191a1c99f821c57f"
-  integrity sha512-uL4TyojAYET0c5NGFD7+ScCod/k8Pc/B+D5tLrunFcz1GaBjRMOGRPcNGaRmnhwisegU7ibtw0iUxCN+BZ0ang==
+youtubei.js@13.0.0:
+  version "13.0.0"
+  resolved "https://registry.yarnpkg.com/youtubei.js/-/youtubei.js-13.0.0.tgz#f036bc6f5cb9ef8bd73da7e1079a2b70776bb2f7"
+  integrity sha512-b1QkN9bfgphK+5tI4qteSK54kNxmPhoedvMw0jl4uSn+L8gbDbJ4z52amNuYNcOdp4X/SI3JuUb+f5V0DPJ8Vw==
   dependencies:
     "@bufbuild/protobuf" "^2.0.0"
-    jintr "^3.2.1"
+    jintr "^3.2.0"
     tslib "^2.5.0"
     undici "^5.19.1"
