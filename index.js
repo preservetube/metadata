@@ -133,15 +133,8 @@ app.ws('/download/:id/:quality', async (ws, req) => {
     quality: req.params.quality,
     type: 'video'
   }
-  const videoFormat = chooseFormat(videoOptions, info['streaming_data'])
-  if (!videoFormat) {
-    ws.send('No matching formats found... Please try again later.')
-    return ws.close()
-  }
-
-  const videoStream = await info.download({
-    itag: videoFormat.itag
-  })
+  const videoFormat = info.chooseFormat(videoOptions)
+  const videoStream = await info.download(videoOptions)
   const videoWriteStream = fs.createWriteStream(`./output/${req.params.id}_video.mp4`)
 
   let videoTotal = videoFormat.content_length;
@@ -239,76 +232,6 @@ function mergeIt(audioPath, videoPath, outputPath) {
       })
       .run();
   });
-}
-
-// stolen straight from youtubei.js
-function chooseFormat(options, streaming_data) {
-  if (!streaming_data) return null
-
-  const formats = [
-    ...(streaming_data.formats || []),
-    ...(streaming_data.adaptive_formats || [])
-  ];
-  
-  if (options.itag) {
-    const candidates = formats.filter((format) => format.itag === options.itag);
-    if (!candidates.length) return null
-    return candidates[0];
-  }
-
-  const requires_audio = options.type ? options.type.includes('audio') : true;
-  const requires_video = options.type ? options.type.includes('video') : true;
-  const language = options.language || 'original';
-  const quality = options.quality || 'best';
-
-  let best_width = -1;
-
-  const is_best = [ 'best', 'bestefficiency' ].includes(quality);
-  const use_most_efficient = quality !== 'best';
-
-  let candidates = formats.filter((format) => {
-    if (requires_audio && !format.has_audio)
-      return false;
-    if (requires_video && !format.has_video)
-      return false;
-    if (options.codec && !format.mime_type.includes(options.codec))
-      return false;
-    if (options.format !== 'any' && !format.mime_type.includes(options.format || 'mp4'))
-      return false;
-    if (!is_best && format.quality_label !== quality)
-      return false;
-    if (format.width && (best_width < format.width))
-      best_width = format.width;
-    return true;
-  });
-
-  if (!candidates.length) return null
-
-  if (is_best && requires_video)
-    candidates = candidates.filter((format) => format.width === best_width);
-
-  if (requires_audio && !requires_video) {
-    const audio_only = candidates.filter((format) => {
-      if (language !== 'original') {
-        return !format.has_video && !format.has_text && format.language === language;
-      }
-      return !format.has_video && !format.has_text && format.is_original;
-
-    });
-    if (audio_only.length > 0) {
-      candidates = audio_only;
-    }
-  }
-
-  if (use_most_efficient) {
-    // Sort by bitrate (lower is better)
-    candidates.sort((a, b) => a.bitrate - b.bitrate);
-  } else {
-    // Sort by bitrate (higher is better)
-    candidates.sort((a, b) => b.bitrate - a.bitrate);
-  }
-
-  return candidates.filter(v => v.content_length)[0];
 }
 
 async function switchIps() {
