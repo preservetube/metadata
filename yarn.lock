@@ -22,10 +22,10 @@
   resolved "https://registry.yarnpkg.com/@fastify/busboy/-/busboy-2.1.1.tgz#b9da6a878a371829a0502c9b6c1c143ef6663f4d"
   integrity sha512-vBZP4NlzfOlerQTnba4aqZoMhE/a9HY7HRqoOPaETQcSQuWEIyZMHGfVu6w9wGtGK5fED5qRs2DteVCjOH60sA==
 
-"@preservetube/youtubei.js@^13.1.0":
+"@preservetube/youtube.js@^13.1.0":
   version "13.1.0"
-  resolved "https://npm.pkg.github.com/download/@preservetube/youtubei.js/13.1.0/a799472b32ad24801d70b7c37a4893047dc38e8c#a799472b32ad24801d70b7c37a4893047dc38e8c"
-  integrity sha512-iNQ6LI5iWSldyLTkcEE+PWUn9Hlx/hRYxwyIN0FZWisk1T7yp02pVJTWWINKmBE8IL86j33IRXKRiJs9B0Et3Q==
+  resolved "https://npm.pkg.github.com/download/@preservetube/youtube.js/13.1.0/673f538e09496132321caa1458167cc504250014#673f538e09496132321caa1458167cc504250014"
+  integrity sha512-5UMJVuEgYZgzDEjcOjRS8DsgBmji56VYlWEwjC5MLaAAxvSbqUQKkic42JnkOxE0G30fJy5scX+DWHyHgAMXjw==
   dependencies:
     "@bufbuild/protobuf" "^2.0.0"
     jintr "^3.2.1"
