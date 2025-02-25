@@ -1,5 +1,5 @@
 const express = require('express')
-const { Innertube, Utils } = require('youtubei.js');
+const { Innertube, Utils } = require('@preservetube/youtubei.js');
 const hr = require('@tsmx/human-readable')
 
 const ffmpeg = require('fluent-ffmpeg')

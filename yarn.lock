@@ -22,6 +22,16 @@
   resolved "https://registry.yarnpkg.com/@fastify/busboy/-/busboy-2.1.1.tgz#b9da6a878a371829a0502c9b6c1c143ef6663f4d"
   integrity sha512-vBZP4NlzfOlerQTnba4aqZoMhE/a9HY7HRqoOPaETQcSQuWEIyZMHGfVu6w9wGtGK5fED5qRs2DteVCjOH60sA==
 
+"@preservetube/youtubei.js@^13.1.0":
+  version "13.1.0"
+  resolved "https://npm.pkg.github.com/download/@preservetube/youtubei.js/13.1.0/a799472b32ad24801d70b7c37a4893047dc38e8c#a799472b32ad24801d70b7c37a4893047dc38e8c"
+  integrity sha512-iNQ6LI5iWSldyLTkcEE+PWUn9Hlx/hRYxwyIN0FZWisk1T7yp02pVJTWWINKmBE8IL86j33IRXKRiJs9B0Et3Q==
+  dependencies:
+    "@bufbuild/protobuf" "^2.0.0"
+    jintr "^3.2.1"
+    tslib "^2.5.0"
+    undici "^5.19.1"
+
 "@tsmx/human-readable@^2.0.3":
   version "2.0.3"
   resolved "https://registry.yarnpkg.com/@tsmx/human-readable/-/human-readable-2.0.3.tgz#554d2281bee7f059050bdf88fa9696004209911a"
@@ -393,7 +403,7 @@ isexe@^2.0.0:
   resolved "https://registry.yarnpkg.com/isexe/-/isexe-2.0.0.tgz#e8fbf374dc556ff8947a10dcb0572d633f2cfa10"
   integrity sha512-RHxMLp9lnKHGHRng9QFhRCMbYAcVpn69smSGcq3f36xjgVVWThj4qqLbTLlq7Ssj8B+fIQ1EuCEGI2lKsyQeIw==
 
-jintr@^3.2.0:
+jintr@^3.2.0, jintr@^3.2.1:
   version "3.2.1"
   resolved "https://registry.yarnpkg.com/jintr/-/jintr-3.2.1.tgz#ea6719485c9ff5f14ca7f9131990040d4fdfe1be"
   integrity sha512-yjKUBuwTTg4nc4izMysxuIk0BKh45hnbc1KnXE6LxagIGZn5od+I2elpuRY9IIm3EiKiUZxhxV89a0iX+xoEZg==
