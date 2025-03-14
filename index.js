@@ -281,9 +281,9 @@ async function switchIps() {
   })
 }
 
-// setInterval(switchIps, 30 * 60000) // 30 minutes
+setInterval(switchIps, 30 * 60000) // 30 minutes
 
 app.listen(8008, () => {
   console.log('the metadata server is up.')
-  // switchIps()
+  switchIps()
 })
