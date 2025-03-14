@@ -12,7 +12,7 @@ require('express-ws')(app)
 ffmpeg.setFfmpegPath(ffmpegStatic)
 
 const maxRetries = 5
-const platforms = ['iOS', 'YTSTUDIO_ANDROID', 'WEB', 'YTMUSIC_ANDROID', 'YTMUSIC', 'TV_EMBEDDED']
+const platforms = ['IOS', 'ANDROID', 'YTSTUDIO_ANDROID', 'YTMUSIC_ANDROID']
 
 app.get('/health', async (req, res) => {
   try {
