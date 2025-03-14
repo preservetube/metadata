@@ -1,4 +1,6 @@
+require('dotenv').config()
 const express = require('express')
+const { randomDispatcher } = require('freebind');
 const { Innertube, Utils } = require('@preservetube/youtube.js');
 const hr = require('@tsmx/human-readable')
 
@@ -7,6 +9,7 @@ const ffmpegStatic = require('ffmpeg-static')
 const fs = require('node:fs')
 
 const app = express()
+const dispatcher = randomDispatcher(process.env.RANGE)
 require('express-ws')(app)
 
 ffmpeg.setFfmpegPath(ffmpegStatic)
@@ -121,7 +124,12 @@ app.get('/videos/:id', async (req, res) => {
 })
 
 app.ws('/download/:id/:quality', async (ws, req) => {
-  const yt = await Innertube.create();
+  const yt = await Innertube.create({
+    fetch: (input, init) => fetch(input, {
+      ...init,
+      dispatcher: dispatcher
+    })
+  });
   const info = await yt.getInfo(req.params.id, 'ANDROID');
   if (info.playability_status.status !== 'OK') {
     ws.send(`This video is not available for download (${info.playability_status.status} ${info.playability_status.reason}).`);
