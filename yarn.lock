@@ -22,10 +22,10 @@
   resolved "https://registry.yarnpkg.com/@fastify/busboy/-/busboy-2.1.1.tgz#b9da6a878a371829a0502c9b6c1c143ef6663f4d"
   integrity sha512-vBZP4NlzfOlerQTnba4aqZoMhE/a9HY7HRqoOPaETQcSQuWEIyZMHGfVu6w9wGtGK5fED5qRs2DteVCjOH60sA==
 
-"@preservetube/youtube.js@^13.1.0":
-  version "13.1.0"
-  resolved "https://npm.pkg.github.com/download/@preservetube/youtube.js/13.1.0/673f538e09496132321caa1458167cc504250014#673f538e09496132321caa1458167cc504250014"
-  integrity sha512-5UMJVuEgYZgzDEjcOjRS8DsgBmji56VYlWEwjC5MLaAAxvSbqUQKkic42JnkOxE0G30fJy5scX+DWHyHgAMXjw==
+"@preservetube/youtube.js@^13.2.0":
+  version "13.2.0"
+  resolved "https://npm.pkg.github.com/download/@preservetube/youtube.js/13.2.0/3e05d77fdb2a9797861988ac0378e69d248c6664#3e05d77fdb2a9797861988ac0378e69d248c6664"
+  integrity sha512-+RTH835tgFudZ+dvQHLV7Mwa38gZkHFVtyAMv+6ynbdtEGXnpSA94Mxu+hsrWYZWdPEpJ9C/R/05OJKc6Hzv8g==
   dependencies:
     "@bufbuild/protobuf" "^2.0.0"
     jintr "^3.2.1"
@@ -403,7 +403,7 @@ isexe@^2.0.0:
   resolved "https://registry.yarnpkg.com/isexe/-/isexe-2.0.0.tgz#e8fbf374dc556ff8947a10dcb0572d633f2cfa10"
   integrity sha512-RHxMLp9lnKHGHRng9QFhRCMbYAcVpn69smSGcq3f36xjgVVWThj4qqLbTLlq7Ssj8B+fIQ1EuCEGI2lKsyQeIw==
 
-jintr@^3.1.0, jintr@^3.2.1:
+jintr@^3.2.1:
   version "3.2.1"
   resolved "https://registry.yarnpkg.com/jintr/-/jintr-3.2.1.tgz#ea6719485c9ff5f14ca7f9131990040d4fdfe1be"
   integrity sha512-yjKUBuwTTg4nc4izMysxuIk0BKh45hnbc1KnXE6LxagIGZn5od+I2elpuRY9IIm3EiKiUZxhxV89a0iX+xoEZg==
@@ -672,13 +672,3 @@ ws@^7.4.6:
   version "7.5.10"
   resolved "https://registry.yarnpkg.com/ws/-/ws-7.5.10.tgz#58b5c20dc281633f6c19113f39b349bd8bd558d9"
   integrity sha512-+dbF1tHwZpXcbOJdVOkzLDxZP1ailvSxM6ZweXTegylPny803bFhA+vqBYw4s31NSAk4S2Qz+AKXK9a4wkdjcQ==
-
-youtubei.js@12.0.0:
-  version "12.0.0"
-  resolved "https://registry.yarnpkg.com/youtubei.js/-/youtubei.js-12.0.0.tgz#a36159918bf3e255a052d42afc9ca9c0f8c82a8c"
-  integrity sha512-pGmVb1I9b2gseqmuMx+BCajzVUi04+r+8zxj4Fk/iQaGQGvBCbY87Tu9mdvEgIQYTkkb4Fza7GZGrH9AjYNbrw==
-  dependencies:
-    "@bufbuild/protobuf" "^2.0.0"
-    jintr "^3.1.0"
-    tslib "^2.5.0"
-    undici "^5.19.1"
