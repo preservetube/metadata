@@ -32,9 +32,11 @@ app.get('/health', async (req, res) => {
       res.status(200).json({ message: 'All endpoints are healthy', results });
     } else {
       res.status(500).json({ error: 'Health check failed', results });
+      switchIps()
     }
   } catch (error) {
     console.error('Health check failed:', error.message);
+    switchIps()
     res.status(500).json({ error: 'Health check failed', results: [], errorMessage: error.message });
   }
 })
