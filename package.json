@@ -4,7 +4,7 @@
   "main": "index.js",
   "license": "MIT",
   "dependencies": {
-    "@preservetube/youtube.js": "^13.2.0",
+    "@preservetube/youtubei.js": "^13.3.0",
     "@tsmx/human-readable": "^2.0.3",
     "express": "^4.21.1",
     "express-ws": "^5.0.2",
