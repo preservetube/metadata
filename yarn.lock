@@ -22,13 +22,13 @@
   resolved "https://registry.yarnpkg.com/@fastify/busboy/-/busboy-2.1.1.tgz#b9da6a878a371829a0502c9b6c1c143ef6663f4d"
   integrity sha512-vBZP4NlzfOlerQTnba4aqZoMhE/a9HY7HRqoOPaETQcSQuWEIyZMHGfVu6w9wGtGK5fED5qRs2DteVCjOH60sA==
 
-"@preservetube/youtubei.js@^13.3.0":
-  version "13.3.0"
-  resolved "https://npm.pkg.github.com/download/@preservetube/youtubei.js/13.3.0/2802f5fdd6933961df2391de58eb21654bc5b66b#2802f5fdd6933961df2391de58eb21654bc5b66b"
-  integrity sha512-/My/4foy+CYq2u4IVwrNYOObbke94v9n43Xc0tMUF6jJOMoDfgqFjLqoR9uRcLNfoGFmn19sEPcm01HkUhLdeg==
+"@preservetube/youtubei.js@^13.4.0":
+  version "13.4.0"
+  resolved "https://npm.pkg.github.com/download/@preservetube/youtubei.js/13.4.0/e42f8fc3b01b01bbda023cf1181ad8b6c215942e#e42f8fc3b01b01bbda023cf1181ad8b6c215942e"
+  integrity sha512-SncKDVA4pEQXd9agpS26CiXu4dns3MBhRMts5eVMJjVN4Z+7VpWeNW+OHLoIcBdfDyxOdjVqXZtLzL6nlM5Y0A==
   dependencies:
     "@bufbuild/protobuf" "^2.0.0"
-    jintr "^3.3.0"
+    jintr "^3.3.1"
     tslib "^2.5.0"
     undici "^5.19.1"
 
@@ -403,10 +403,10 @@ isexe@^2.0.0:
   resolved "https://registry.yarnpkg.com/isexe/-/isexe-2.0.0.tgz#e8fbf374dc556ff8947a10dcb0572d633f2cfa10"
   integrity sha512-RHxMLp9lnKHGHRng9QFhRCMbYAcVpn69smSGcq3f36xjgVVWThj4qqLbTLlq7Ssj8B+fIQ1EuCEGI2lKsyQeIw==
 
-jintr@^3.3.0:
-  version "3.3.0"
-  resolved "https://registry.yarnpkg.com/jintr/-/jintr-3.3.0.tgz#74271197c260b9b2e435d961339263c515df603d"
-  integrity sha512-ZsaajJ4Hr5XR0tSPhOZOTjFhxA0qscKNSOs41NRjx7ZOGwpfdp8NKIBEUtvUPbA37JXyv1sJlgeOOZHjr3h76Q==
+jintr@^3.3.1:
+  version "3.3.1"
+  resolved "https://registry.yarnpkg.com/jintr/-/jintr-3.3.1.tgz#b88355af0c66603130b12d54721b8ab1d3be0b98"
+  integrity sha512-nnOzyhf0SLpbWuZ270Omwbj5LcXUkTcZkVnK8/veJXtSZOiATM5gMZMdmzN75FmTyj+NVgrGaPdH12zIJ24oIA==
   dependencies:
     acorn "^8.8.0"
 
