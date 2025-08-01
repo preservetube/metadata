@@ -1,14 +1,20 @@
-const express = require('express')
-const { Innertube, Utils } = require('@preservetube/youtubei.js');
-const hr = require('@tsmx/human-readable')
+import express from 'express';
+import { Innertube } from 'youtubei.js'
+import * as fs from 'node:fs'
+
+import { EnabledTrackTypes } from 'googlevideo/utils';
+import {
+  createOutputStream,
+  createStreamSink,
+  createSabrStream,
+} from './utils/sabr-stream-factory.js';
+import type { SabrPlaybackOptions } from 'googlevideo/sabr-stream';
 
 const ffmpeg = require('fluent-ffmpeg')
 const ffmpegStatic = require('ffmpeg-static')
-const fs = require('node:fs')
 
-const app = express()
+const app = express();
 require('express-ws')(app)
-
 ffmpeg.setFfmpegPath(ffmpegStatic)
 
 const maxRetries = 5
@@ -20,7 +26,7 @@ app.get('/health', async (req, res) => {
 
     const results = await Promise.all(urls.map(async (url) => {
       const response = await fetch(`http://localhost:8008${url}`);
-      const jsonData = await response.json();
+      const jsonData: any = await response.json();
       const status = jsonData.error ? 'unhealthy' : 'healthy';
       return { url, status };
     }));
@@ -34,7 +40,7 @@ app.get('/health', async (req, res) => {
       res.status(500).json({ error: 'Health check failed', results });
       switchIps()
     }
-  } catch (error) {
+  } catch (error:any) {
     console.error('Health check failed:', error.message);
     switchIps()
     res.status(500).json({ error: 'Health check failed', results: [], errorMessage: error.message });
@@ -48,13 +54,15 @@ app.get('/video/:id', async (req, res) => {
     try {
       const platform = platforms[retries % platforms.length];
       const yt = await Innertube.create();
-      const info = await yt.getInfo(req.params.id, platform);
+      const info = await yt.getInfo(req.params.id, { // @ts-ignore
+        client: platform
+      });
 
       if (!info) {
         error = 'ErrorCantConnectToServiceAPI'
         continue;
       }
-      if (info.playability_status.status !== 'OK') {
+      if (info.playability_status!.status !== 'OK') {
         error = 'ErrorYTUnavailable'
         continue;
       }
@@ -80,9 +88,8 @@ app.get('/channel/:id', async (req, res) => {
 
   for (let retries = 0; retries < maxRetries; retries++) {
     try {
-      const platform = platforms[retries % platforms.length];
       const yt = await Innertube.create();
-      const info = await yt.getChannel(req.params.id, platform);
+      const info = await yt.getChannel(req.params.id);
 
       if (!info) {
         error = 'ErrorCantConnectToServiceAPI'
@@ -116,128 +123,103 @@ app.get('/videos/:id', async (req, res) => {
     res.json(false)
   }
 
-  async function getNextPage(json) {
+  async function getNextPage(json: any) {
     const page = await json.getContinuation();
     return page;
   }
 })
 
+// @ts-ignore
 app.ws('/download/:id/:quality', async (ws, req) => {
   const yt = await Innertube.create();
-  const info = await yt.getInfo(req.params.id, 'IOS');
-  if (info.playability_status.status !== 'OK') {
-    ws.send(`This video is not available for download (${info.playability_status.status} ${info.playability_status.reason}).`);
+  const info = await yt.getInfo(req.params.id, {
+    client: 'IOS'
+  });
+
+  if (info.playability_status?.status !== 'OK') {
+    ws.send(`This video is not available for download (${info.playability_status?.status} ${info.playability_status?.reason}).`);
     return ws.close()
-  }
+  } else if (info.basic_info.is_live) {
+    ws.send('This video is live, and cannot be downloaded.');
+    return ws.close()
+  } else if (info.basic_info.id != req.params.id) {
+    ws.send('This video is not available for download. Youtube is serving a different video.');
+    return ws.close()
+  } 
 
-  const videoOptions = {
-    format: 'mp4',
-    quality: req.params.quality,
-    type: 'video'
-  }
-  const videoFormat = info.chooseFormat(videoOptions)
-  const videoStream = await info.download(videoOptions)
-  const videoWriteStream = fs.createWriteStream(`./output/${req.params.id}_video.mp4`)
+  const streamOptions: SabrPlaybackOptions = {
+    preferMP4: true,
+    videoQuality: req.params.quality,
+    audioQuality: 'AUDIO_QUALITY_MEDIUM',
+    enabledTrackTypes: EnabledTrackTypes.VIDEO_AND_AUDIO
+  };
+  const { streamResults } = await createSabrStream(req.params.id, streamOptions);
+  const { videoStream, audioStream, selectedFormats } = streamResults;
 
-  let videoTotal = videoFormat.content_length;
-  const whitelistedVideos = JSON.parse(fs.readFileSync('./whitelist.json'))
-  if (videoTotal > (1_048_576 * 150) && !whitelistedVideos.includes(req.params.id)) {
+  const whitelistedVideos = JSON.parse(fs.readFileSync('./whitelist.json', 'utf-8'))
+  const videoSizeTotal = (selectedFormats.audioFormat.contentLength || 0) 
+    + (selectedFormats.videoFormat.contentLength || 0)
+
+  if (videoSizeTotal > (1_048_576 * 150) && !whitelistedVideos.includes(req.params.id)) {
     ws.send('Is this content considered high risk? If so, please email me at admin@preservetube.com.');
     ws.send('This video is too large, and unfortunately, Preservetube does not have unlimited storage.');
     return ws.close()
+  } else if (!selectedFormats.videoFormat.contentLength) {
+    ws.send('Youtube isn\'t giving us enough information to be able to tell if we can process this video.')
+    ws.send('Please try again later.')
+    return ws.close()
   }
 
-  let videoDownloaded = 0;
-  let videoStartTime = Date.now();
-  const videoPrecentages = []
+  const audioOutputStream = createOutputStream(req.params.id, selectedFormats.audioFormat.mimeType!);
+  const videoOutputStream = createOutputStream(req.params.id, selectedFormats.videoFormat.mimeType!);
 
-  for await (const chunk of Utils.streamToIterable(videoStream)) {
-    videoWriteStream.write(chunk);
-    videoDownloaded += chunk.length;
+  await Promise.all([
+    videoStream.pipeTo(createStreamSink(selectedFormats.videoFormat, videoOutputStream.stream, ws, 'video')),
+    audioStream.pipeTo(createStreamSink(selectedFormats.audioFormat, audioOutputStream.stream, ws, 'audio'))
+  ]);
 
-    let elapsedTime = (Date.now() - videoStartTime) / 1000;
-    let progress = videoDownloaded / videoTotal;
-    let speedInMBps = (videoDownloaded / (1024 * 1024)) / elapsedTime;
-    let remainingTime = (videoTotal - videoDownloaded) / (speedInMBps * 1024 * 1024);
+  ws.send('Downloaded video and audio. Merging them together.')
 
-    if (videoPrecentages.includes((progress * 100).toFixed(0))) continue
-    videoPrecentages.push((progress * 100).toFixed(0))
-
-    ws.send(`[video] ${(progress * 100).toFixed(2)}% of ${hr.fromBytes(videoTotal)} at ${speedInMBps.toFixed(2)} MB/s ETA ${secondsToTime(remainingTime.toFixed(0))}`)
-  }
-
-  ws.send(`The video has been downloaded. ${!videoFormat.has_audio ? ' Downloading the audio.' : ''}`)
-
-  if (!videoFormat.has_audio) {
-    const audioOptions = {
-      type: 'audio',
-      quality: 'bestefficiency'
-    }
-    const audioFormat = info.chooseFormat(audioOptions)
-    const audioStream = await info.download(audioOptions)
-    const audioWriteStream = fs.createWriteStream(`./output/${req.params.id}_audio.mp4`)
-
-    let audioTotal = audioFormat.content_length;
-    let audioDownloaded = 0;
-    let audioStartTime = Date.now();
-    const audioPrecentages = []
-
-    for await (const chunk of Utils.streamToIterable(audioStream)) {
-      audioWriteStream.write(chunk);
-      audioDownloaded += chunk.length;
-
-      let elapsedTime = (Date.now() - audioStartTime) / 1000;
-      let progress = audioDownloaded / audioTotal;
-      let speedInMBps = (audioDownloaded / (1024 * 1024)) / elapsedTime;
-      let remainingTime = (audioTotal - audioDownloaded) / (speedInMBps * 1024 * 1024);
-
-      if (audioPrecentages.includes((progress * 100).toFixed(0))) continue
-      audioPrecentages.push((progress * 100).toFixed(0))
-
-      ws.send(`[audio] ${(progress * 100).toFixed(2)}% of ${hr.fromBytes(audioTotal)} at ${speedInMBps.toFixed(2)} MB/s ETA ${secondsToTime(remainingTime.toFixed(0))}`)
-    }
-
-    ws.send('Downloaded video and audio. Merging them together.')
-
-    await mergeIt(`./output/${req.params.id}_audio.mp4`, `./output/${req.params.id}_video.mp4`, `./output/${req.params.id}.mp4`)
-  } else {
-    fs.renameSync(`./output/${req.params.id}_video.mp4`, `./output/${req.params.id}.mp4`)
-  }
-
-  if (fs.existsSync(`./output/${req.params.id}_audio.mp4`)) fs.rmSync(`./output/${req.params.id}_audio.mp4`)
-  if (fs.existsSync(`./output/${req.params.id}_video.mp4`)) fs.rmSync(`./output/${req.params.id}_video.mp4`)
+  await mergeIt(audioOutputStream.filePath, videoOutputStream.filePath, `./output/${req.params.id}.mp4`, ws)
+  await cleanupTempFiles([ audioOutputStream.filePath, videoOutputStream.filePath ]);
 
   ws.send('done')
   ws.close()
 });
 
-function secondsToTime(seconds) {
-  const minutes = Math.floor(seconds / 60);
-  const remainingSeconds = seconds % 60;
-  const formattedSeconds = remainingSeconds < 10 ? '0' + remainingSeconds : remainingSeconds;
-  return `${minutes}:${formattedSeconds}`;
-}
-
-function mergeIt(audioPath, videoPath, outputPath) {
+function mergeIt(audioPath: string, videoPath: string, outputPath: string, ws: any) {
   return new Promise((resolve, reject) => {
     ffmpeg()
-      .addInput(videoPath)
-      .addInput(audioPath)
-      .outputOptions('-c:v copy')
-      .outputOptions('-c:a aac')
-      .output(outputPath)
+      .input(videoPath)
+      .input(audioPath)
+      .outputOptions([ '-c:v copy', '-c:a copy', '-map 0:v:0', '-map 1:a:0' ])
+      .on('progress', (progress:any) => {
+        if (progress.percent) {
+          ws.send(`[merging] ${progress.precent}% done`)
+        }
+      })
       .on('end', () => {
-        resolve('Merging finished!');
+        resolve(outputPath);
       })
-      .on('error', (err) => {
-        reject(new Error('An error occurred: ' + err.message));
+      .on('error', (err:any) => {
+        reject(new Error(`Error merging files: ${err.message}`));
       })
-      .run();
+      .save(outputPath);
   });
 }
 
+async function cleanupTempFiles(files: string[]) {
+  for (const file of files) {
+    try {
+      fs.unlinkSync(file);
+    } catch (error) {
+      console.warn(`Failed to delete temp file ${file}:`, error);
+    }
+  }
+}
+
 async function switchIps() {
-  const currentIp = await (await fetch('http://localhost:8000/v1/publicip/ip', {
+  const currentIp: any = await (await fetch('http://localhost:8000/v1/publicip/ip', {
     headers: {
       'X-API-Key': '64d1781e469965c1cdad611b0c05d313'
     }
@@ -268,7 +250,7 @@ async function switchIps() {
 
   await new Promise((resolve, reject) => {
     const intervalId = setInterval(async () => {
-      const newIp = await (await fetch('http://localhost:8000/v1/publicip/ip', {
+      const newIp: any = await (await fetch('http://localhost:8000/v1/publicip/ip', {
         headers: {
           'X-API-Key': '64d1781e469965c1cdad611b0c05d313',
         },
@@ -277,7 +259,7 @@ async function switchIps() {
       if (newIp.public_ip !== '') {
         console.log(`finished switching ips. ${newIp.public_ip}, ${newIp.city}, ${newIp.region}, ${newIp.organization}. took ${(new Date().getTime() - currentDate.getTime()) / 1000}s`)
         clearInterval(intervalId);
-        resolve()
+        resolve('done')
       }
     }, 500);
   })
