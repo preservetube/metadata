@@ -1,4 +1,4 @@
-FROM node:alpine
+FROM oven/bun:1 AS base
 
 RUN mkdir -p /usr/src/preservetube/metadata
 WORKDIR /usr/src/preservetube/metadata
