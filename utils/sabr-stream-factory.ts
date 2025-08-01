@@ -139,12 +139,11 @@ export async function createSabrStream(
 
   const sabrFormats = playerResponse.streaming_data?.adaptive_formats
     .filter(f => {
-      if (f.has_audio) { // this is an audio track, we need to filter out the ai dubs
-        if (f.is_auto_dubbed) return false 
-        if (!f.audio_track?.audio_is_default) return false 
+      if (f.is_auto_dubbed) return false 
+      if (f.audio_track) {
+        if (!f.audio_track.audio_is_default) return false 
         if (!f.audio_track.display_name.endsWith('original')) return false 
-      }
-
+      } 
       return true
     })
     .map(buildSabrFormat) || [];
