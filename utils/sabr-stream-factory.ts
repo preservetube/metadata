@@ -125,6 +125,7 @@ export async function createSabrStream(
 }> {
   const innertube = await Innertube.create({ cache: new UniversalCache(true) });
   const webPoTokenResult = await generateWebPoToken(innertube.session.context.client.visitorData || '');
+  console.log(`debugging -> ${JSON.stringify(webPoTokenResult)}`)
 
   // Get video metadata.
   const playerResponse = await makePlayerRequest(innertube, videoId);
