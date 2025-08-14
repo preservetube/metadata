@@ -148,9 +148,8 @@ app.ws('/download/:id/:quality', async (ws, req) => {
   } 
 
   const streamOptions: SabrPlaybackOptions = {
-    preferMP4: true,
     videoQuality: req.params.quality,
-    audioQuality: 'AUDIO_QUALITY_MEDIUM',
+    audioQuality: 'AUDIO_QUALITY_LOW',
     enabledTrackTypes: EnabledTrackTypes.VIDEO_AND_AUDIO
   };
   const { streamResults } = await createSabrStream(req.params.id, streamOptions);
