@@ -125,7 +125,7 @@ export async function createSabrStream(
 }> {
   const innertube = await Innertube.create({ cache: new UniversalCache(true) });
   const webPoTokenResult = await generateWebPoToken(innertube.session.context.client.visitorData || '');
-  console.log(`debugging -> ${JSON.stringify(webPoTokenResult)}`)
+  console.log(`debugging -> ${JSON.stringify(webPoTokenResult)}, ${videoId}`)
 
   // Get video metadata.
   const playerResponse = await makePlayerRequest(innertube, videoId);
@@ -145,6 +145,10 @@ export async function createSabrStream(
       return true
     })
     .map(buildSabrFormat) || [];
+  
+  if (!sabrFormats.find(f => f.audioQuality == 'AUDIO_QUALITY_LOW')) { // there is no low quality, we go medium
+    options.audioQuality = 'AUDIO_QUALITY_MEDIUM'
+  }
 
   const serverAbrStream = new SabrStream({
     formats: sabrFormats,
