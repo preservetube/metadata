@@ -174,7 +174,20 @@ export async function createSabrStream(
     }
   });
 
-  const { videoStream, audioStream, selectedFormats } = await serverAbrStream.start(options);
+  // thank you to @olokelo for this suggestion - my favourite damn codec nerd 
+  const lowestStorageVideo = sabrFormats
+    .filter((format) => !!format.qualityLabel?.toLowerCase().includes(options.videoQuality?.toLowerCase() || ''))
+    .sort((a, b) => (a.contentLength || 0) - (b.contentLength || 0))?.[0]
+  const lowestStorageAudio = sabrFormats
+    .filter((format) => !!format.audioQuality?.toLowerCase().includes(options.audioQuality?.toLowerCase() || ''))
+    .sort((a, b) => (a.contentLength || 0) - (b.contentLength || 0))?.[0]
+  const lowestOptions = {
+    videoFormat: lowestStorageVideo?.itag,
+    audioFormat: lowestStorageAudio?.itag
+  }
+
+  const { videoStream, audioStream, selectedFormats } // if we found the lowest storage, use those, otherwise let lib do its own magic
+    = await serverAbrStream.start((lowestOptions.videoFormat && lowestOptions.audioFormat) ? lowestOptions : options);
 
   return {
     innertube,
