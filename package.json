@@ -14,6 +14,7 @@
     "@types/express": "^5.0.3",
     "@types/jsdom": "^21.1.7",
     "bgutils-js": "^3.2.0",
+    "cheerio": "^1.1.2",
     "express": "^5.1.0",
     "express-ws": "^5.0.2",
     "ffmpeg-static": "^5.2.0",

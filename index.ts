@@ -1,5 +1,6 @@
 import express from 'express';
 import { Innertube } from 'youtubei.js'
+import * as cheerio from 'cheerio';
 import * as fs from 'node:fs'
 
 import { EnabledTrackTypes } from 'googlevideo/utils';
@@ -185,6 +186,35 @@ app.ws('/download/:id/:quality', async (ws, req) => {
   ws.send('done')
   ws.close()
 });
+
+app.get('/getWebpageJson', async (req, res) => {
+  if (!req.query.url) return res.send('no url')
+
+  const ytRes = await fetch(req.query.url as string);
+  if (!ytRes.ok) return res.status(500).send('failed to fetch youtube url')
+
+  const html = await ytRes.text();
+  const $ = cheerio.load(html);
+  let found: string | null = null;
+
+  $('script').each((_, el) => {
+    const scriptContent = $(el).html();
+    if (scriptContent && scriptContent.includes('var ytInitialData = ')) {
+      const jsonStr = scriptContent.split('var ytInitialData = ')[1]?.split("};")[0];
+      if (jsonStr) {
+        found = jsonStr + "}";
+        return false;
+      }
+    }
+  });
+
+  if (!found) return res.status(500).send('failed to find youtube json')
+  try {
+    res.json(JSON.parse(found))
+  } catch (_) {
+    res.status(500).send('failed to parse youtube json')
+  }
+})
 
 function mergeIt(audioPath: string, videoPath: string, outputPath: string, ws: any) {
   return new Promise((resolve, reject) => {
