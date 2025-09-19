@@ -221,7 +221,7 @@ function mergeIt(audioPath: string, videoPath: string, outputPath: string, ws: a
     ffmpeg()
       .input(videoPath)
       .input(audioPath)
-      .outputOptions([ '-c:v copy', '-c:a copy', '-map 0:v:0', '-map 1:a:0' ])
+      .outputOptions([ '-c:v copy', '-c:a copy', '-map 0:v:0', '-map 1:a:0', '-movflags +faststart' ])
       .on('progress', (progress:any) => {
         if (progress.percent) {
           ws.send(`[merging] ${progress.precent}% done`)
