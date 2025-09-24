@@ -131,11 +131,20 @@ app.get('/videos/:id', async (req, res) => {
 })
 
 // @ts-ignore
-app.ws('/download/:id/:quality', async (ws, req) => {
+app.ws('/download/:id', async (ws, req) => {
   const yt = await Innertube.create();
+  let quality = '480p'
+
   const info = await yt.getInfo(req.params.id, {
     client: 'IOS'
   });
+  if (!info || info.basic_info.duration == undefined) {
+    ws.send('Unable to retrieve video info from YouTube. Please try again later.');
+    return ws.close()
+  }
+  
+  if (info.basic_info.duration >= 900) quality = '360p'
+  quality = await getVideoQuality(info, quality)
 
   if (info.playability_status?.status !== 'OK') {
     ws.send(`This video is not available for download (${info.playability_status?.status} ${info.playability_status?.reason}).`);
@@ -215,6 +224,24 @@ app.get('/getWebpageJson', async (req, res) => {
     res.status(500).send('failed to parse youtube json')
   }
 })
+
+async function getVideoQuality(json: any, quality: string) {
+  const adaptiveFormats = json['streaming_data']['adaptive_formats'];
+  let video = adaptiveFormats.find((f: any) => f.quality_label === quality && !f.has_audio);
+
+  if (!video) {
+    const target = parseInt(quality);
+    video = adaptiveFormats // find the quality thats closest to the one we wanted
+      .filter((f: any) => !f.has_audio && f.quality_label)
+      .reduce((prev: any, curr: any) => {
+        const currDiff = Math.abs(parseInt(curr.quality_label) - target);
+        const prevDiff = prev ? Math.abs(parseInt(prev.quality_label) - target) : Infinity;
+        return currDiff < prevDiff ? curr : prev;
+      }, null);
+  }
+
+  return video ? video.quality_label : null;
+}
 
 function mergeIt(audioPath: string, videoPath: string, outputPath: string, ws: any) {
   return new Promise((resolve, reject) => {
