@@ -165,11 +165,11 @@ app.ws('/download/:id', async (ws, req) => {
   const { streamResults } = await createSabrStream(req.params.id, streamOptions);
   const { videoStream, audioStream, selectedFormats } = streamResults;
 
-  const whitelistedVideos = JSON.parse(fs.readFileSync('./whitelist.json', 'utf-8'))
+  const config = await Bun.file('config.json').json()
   const videoSizeTotal = (selectedFormats.audioFormat.contentLength || 0) 
     + (selectedFormats.videoFormat.contentLength || 0)
 
-  if (videoSizeTotal > (1_048_576 * 150) && !whitelistedVideos.includes(req.params.id)) {
+  if (videoSizeTotal > (1_048_576 * 150) && !config.whitelist.includes(req.params.id)) {
     ws.send('Is this content considered high risk? If so, please email me at admin@preservetube.com.');
     ws.send('This video is too large, and unfortunately, Preservetube does not have unlimited storage.');
     return ws.close()
@@ -325,5 +325,5 @@ setInterval(switchIps, 30 * 60000) // 30 minutes
 
 app.listen(8008, () => {
   console.log('the metadata server is up.')
-  switchIps()
+  // switchIps()
 })
