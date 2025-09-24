@@ -108,9 +108,7 @@ app.get('/channel/:id', async (req, res) => {
 app.get('/videos/:id', async (req, res) => {
   try {
     const videos = [];
-    const yt = await Innertube.create({
-      player_id: '0004de42'
-    });
+    const yt = await Innertube.create();
     const channel = await yt.getChannel(req.params.id);
     let json = await channel.getVideos();
 
@@ -134,9 +132,7 @@ app.get('/videos/:id', async (req, res) => {
 
 // @ts-ignore
 app.ws('/download/:id', async (ws, req) => {
-  const yt = await Innertube.create({
-    player_id: '0004de42'
-  });
+  const yt = await Innertube.create();
   let quality = '480p'
 
   const info = await yt.getInfo(req.params.id, {
