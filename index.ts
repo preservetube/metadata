@@ -144,7 +144,7 @@ app.ws('/download/:id', async (ws, req) => {
   }
   
   if (info.basic_info.duration >= 900) quality = '360p'
-  quality = await getVideoQuality(info, quality)
+  quality = getVideoQuality(info, quality)
 
   if (info.playability_status?.status !== 'OK') {
     ws.send(`This video is not available for download (${info.playability_status?.status} ${info.playability_status?.reason}).`);
@@ -158,7 +158,7 @@ app.ws('/download/:id', async (ws, req) => {
   } 
 
   const streamOptions: SabrPlaybackOptions = {
-    videoQuality: req.params.quality,
+    videoQuality: quality,
     audioQuality: 'AUDIO_QUALITY_LOW',
     enabledTrackTypes: EnabledTrackTypes.VIDEO_AND_AUDIO
   };
@@ -225,7 +225,7 @@ app.get('/getWebpageJson', async (req, res) => {
   }
 })
 
-async function getVideoQuality(json: any, quality: string) {
+function getVideoQuality(json: any, quality: string) {
   const adaptiveFormats = json['streaming_data']['adaptive_formats'];
   let video = adaptiveFormats.find((f: any) => f.quality_label === quality && !f.has_audio);
 
@@ -325,5 +325,5 @@ setInterval(switchIps, 30 * 60000) // 30 minutes
 
 app.listen(8008, () => {
   console.log('the metadata server is up.')
-  switchIps()
+  // switchIps()
 })
