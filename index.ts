@@ -8,8 +8,10 @@ import {
   createOutputStream,
   createStreamSink,
   createSabrStream,
+  type DownloadOutput
 } from './utils/sabr-stream-factory.js';
 import type { SabrPlaybackOptions } from 'googlevideo/sabr-stream';
+import { getVideoStreams, downloadStream } from './utils/companion';
 
 const ffmpeg = require('fluent-ffmpeg')
 const ffmpegStatic = require('ffmpeg-static')
@@ -132,11 +134,12 @@ app.get('/videos/:id', async (req, res) => {
 
 // @ts-ignore
 app.ws('/download/:id', async (ws, req) => {
+  const config = await Bun.file('config.json').json()
   const yt = await Innertube.create();
   let quality = '480p'
 
   const info = await yt.getInfo(req.params.id, {
-    client: 'IOS'
+    client: 'TV_SIMPLY'
   });
   if (!info || info.basic_info.duration == undefined) {
     ws.send('Unable to retrieve video info from YouTube. Please try again later.');
@@ -157,35 +160,78 @@ app.ws('/download/:id', async (ws, req) => {
     return ws.close()
   } 
 
-  const streamOptions: SabrPlaybackOptions = {
-    videoQuality: quality,
-    audioQuality: 'AUDIO_QUALITY_LOW',
-    enabledTrackTypes: EnabledTrackTypes.VIDEO_AND_AUDIO
-  };
-  const { streamResults } = await createSabrStream(req.params.id, streamOptions);
-  const { videoStream, audioStream, selectedFormats } = streamResults;
+  let audioOutputStream: DownloadOutput | undefined;
+  let videoOutputStream: DownloadOutput | undefined;
 
-  const config = await Bun.file('config.json').json()
-  const videoSizeTotal = (selectedFormats.audioFormat.contentLength || 0) 
-    + (selectedFormats.videoFormat.contentLength || 0)
+  if (config.useCompanion) {
+    const streamOptions = {
+      videoQuality: quality,
+      audioQuality: 'AUDIO_QUALITY_LOW'
+    };
+    const { streamResults, error } = await getVideoStreams(req.params.id, info.streaming_data!.adaptive_formats, streamOptions);
+    if (streamResults == false) {
+      ws.send(error)
+      return ws.close()
+    }
 
-  if (videoSizeTotal > (1_048_576 * 150) && !config.whitelist.includes(req.params.id)) {
-    ws.send('Is this content considered high risk? If so, please email me at admin@preservetube.com.');
-    ws.send('This video is too large, and unfortunately, Preservetube does not have unlimited storage.');
-    return ws.close()
-  } else if (!selectedFormats.videoFormat.contentLength) {
-    ws.send('Youtube isn\'t giving us enough information to be able to tell if we can process this video.')
-    ws.send('Please try again later.')
-    return ws.close()
+    const { videoStreamUrl, audioStreamUrl, selectedFormats } = streamResults;
+
+    const videoSizeTotal = (selectedFormats.audioFormat.content_length || 0) 
+      + (selectedFormats.videoFormat.content_length || 0)
+
+    if (videoSizeTotal > (1_048_576 * 150) && !config.whitelist.includes(req.params.id)) {
+      ws.send('Is this content considered high risk? If so, please email me at admin@preservetube.com.');
+      ws.send('This video is too large, and unfortunately, Preservetube does not have unlimited storage.');
+      return ws.close()
+    } else if (!selectedFormats.videoFormat.content_length) {
+      ws.send('Youtube isn\'t giving us enough information to be able to tell if we can process this video.')
+      ws.send('Please try again later.')
+      return ws.close()
+    }
+
+    const audioOutputStream = createOutputStream(req.params.id, selectedFormats.audioFormat.mime_type!);
+    const videoOutputStream = createOutputStream(req.params.id, selectedFormats.videoFormat.mime_type!);
+
+    await Promise.all([
+      downloadStream(videoStreamUrl, selectedFormats.videoFormat, videoOutputStream.stream, ws, 'video'),
+      downloadStream(audioStreamUrl, selectedFormats.audioFormat, audioOutputStream.stream, ws, 'audio')
+    ]);
+  } else {
+    const streamOptions: SabrPlaybackOptions = {
+      videoQuality: quality,
+      audioQuality: 'AUDIO_QUALITY_LOW',
+      enabledTrackTypes: EnabledTrackTypes.VIDEO_AND_AUDIO
+    };
+    const { streamResults } = await createSabrStream(req.params.id, streamOptions);
+    const { videoStream, audioStream, selectedFormats } = streamResults;
+
+    const config = await Bun.file('config.json').json()
+    const videoSizeTotal = (selectedFormats.audioFormat.contentLength || 0) 
+      + (selectedFormats.videoFormat.contentLength || 0)
+
+    if (videoSizeTotal > (1_048_576 * 150) && !config.whitelist.includes(req.params.id)) {
+      ws.send('Is this content considered high risk? If so, please email me at admin@preservetube.com.');
+      ws.send('This video is too large, and unfortunately, Preservetube does not have unlimited storage.');
+      return ws.close()
+    } else if (!selectedFormats.videoFormat.contentLength) {
+      ws.send('Youtube isn\'t giving us enough information to be able to tell if we can process this video.')
+      ws.send('Please try again later.')
+      return ws.close()
+    }
+
+    const audioOutputStream = createOutputStream(req.params.id, selectedFormats.audioFormat.mimeType!);
+    const videoOutputStream = createOutputStream(req.params.id, selectedFormats.videoFormat.mimeType!);
+
+    await Promise.all([
+      videoStream.pipeTo(createStreamSink(selectedFormats.videoFormat, videoOutputStream.stream, ws, 'video')),
+      audioStream.pipeTo(createStreamSink(selectedFormats.audioFormat, audioOutputStream.stream, ws, 'audio'))
+    ]);
   }
 
-  const audioOutputStream = createOutputStream(req.params.id, selectedFormats.audioFormat.mimeType!);
-  const videoOutputStream = createOutputStream(req.params.id, selectedFormats.videoFormat.mimeType!);
-
-  await Promise.all([
-    videoStream.pipeTo(createStreamSink(selectedFormats.videoFormat, videoOutputStream.stream, ws, 'video')),
-    audioStream.pipeTo(createStreamSink(selectedFormats.audioFormat, audioOutputStream.stream, ws, 'audio'))
-  ]);
+  if (audioOutputStream == undefined || videoOutputStream == undefined) {
+    ws.send('This should not happen. Please report it via admin@preservetube.com.')
+    return ws.close()
+  }
 
   ws.send('Downloaded video and audio. Merging them together.')
 
@@ -325,5 +371,5 @@ setInterval(switchIps, 30 * 60000) // 30 minutes
 
 app.listen(8008, () => {
   console.log('the metadata server is up.')
-  switchIps()
+  // switchIps()
 })
