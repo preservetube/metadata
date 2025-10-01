@@ -189,8 +189,8 @@ app.ws('/download/:id', async (ws, req) => {
       return ws.close()
     }
 
-    const audioOutputStream = createOutputStream(req.params.id, selectedFormats.audioFormat.mime_type!);
-    const videoOutputStream = createOutputStream(req.params.id, selectedFormats.videoFormat.mime_type!);
+    audioOutputStream = createOutputStream(req.params.id, selectedFormats.audioFormat.mime_type!);
+    videoOutputStream = createOutputStream(req.params.id, selectedFormats.videoFormat.mime_type!);
 
     await Promise.all([
       downloadStream(videoStreamUrl, selectedFormats.videoFormat, videoOutputStream.stream, ws, 'video'),
@@ -219,8 +219,8 @@ app.ws('/download/:id', async (ws, req) => {
       return ws.close()
     }
 
-    const audioOutputStream = createOutputStream(req.params.id, selectedFormats.audioFormat.mimeType!);
-    const videoOutputStream = createOutputStream(req.params.id, selectedFormats.videoFormat.mimeType!);
+    audioOutputStream = createOutputStream(req.params.id, selectedFormats.audioFormat.mimeType!);
+    videoOutputStream = createOutputStream(req.params.id, selectedFormats.videoFormat.mimeType!);
 
     await Promise.all([
       videoStream.pipeTo(createStreamSink(selectedFormats.videoFormat, videoOutputStream.stream, ws, 'video')),
