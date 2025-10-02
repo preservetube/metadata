@@ -22,6 +22,11 @@ export async function getVideoStreams(
     .filter((format) => !!format.quality_label?.toLowerCase().includes(options.videoQuality?.toLowerCase() || ''))
     .sort((a, b) => (a.contentLength || 0) - (b.contentLength || 0))?.[0]
   const lowestStorageAudio = adaptiveFormats
+    .filter(f => {
+      if (f.is_auto_dubbed) return false 
+      if (f.audio_track && !f.audio_track.display_name.endsWith('original')) return false
+      return true
+    })
     .filter((format) => !!format.audio_quality?.toLowerCase().includes(options.audioQuality?.toLowerCase() || ''))
     .sort((a, b) => (a.contentLength || 0) - (b.contentLength || 0))?.[0]
   const lowestOptions = {
