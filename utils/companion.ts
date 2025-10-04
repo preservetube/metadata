@@ -20,15 +20,23 @@ export async function getVideoStreams(
 }> {
   const lowestStorageVideo = adaptiveFormats
     .filter((format) => !!format.quality_label?.toLowerCase().includes(options.videoQuality?.toLowerCase() || ''))
-    .sort((a, b) => (a.contentLength || 0) - (b.contentLength || 0))?.[0]
+    .sort((a, b) => (a.content_length || 0) - (b.content_length || 0))?.[0]
   const lowestStorageAudio = adaptiveFormats
     .filter(f => {
-      if (f.is_auto_dubbed) return false 
+      if (f.is_auto_dubbed || !f.audio_quality) return false 
       if (f.audio_track && !f.audio_track.display_name.endsWith('original')) return false
       return true
     })
-    .filter((format) => !!format.audio_quality?.toLowerCase().includes(options.audioQuality?.toLowerCase() || ''))
-    .sort((a, b) => (a.contentLength || 0) - (b.contentLength || 0))?.[0]
+    .sort((a, b) => { // if the wanted audio quality isnt avalible, just accept smth else. but take the one requested if its there
+      const aMatches = a.audio_quality?.toLowerCase().includes(options.audioQuality?.toLowerCase() || '')
+      const bMatches = b.audio_quality?.toLowerCase().includes(options.audioQuality?.toLowerCase() || '')
+
+      if (aMatches && !bMatches) return -1
+      if (!aMatches && bMatches) return 1
+
+      return (a.content_length || Infinity) - (b.content_length || Infinity)
+    })
+    .sort((a, b) => (a.content_length || 0) - (b.content_length || 0))?.[0]
   const lowestOptions = {
     videoFormat: lowestStorageVideo?.itag,
     audioFormat: lowestStorageAudio?.itag
