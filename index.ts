@@ -146,7 +146,7 @@ app.ws('/download/:id', async (ws, req) => {
     return ws.close()
   }
   
-  if (info.basic_info.duration >= 1500) quality = '360p' // 25mins - temporary changed from 15min
+  if (info.basic_info.duration >= 900) quality = '360p' // 15min
   quality = getVideoQuality(info, quality)
 
   if (info.playability_status?.status !== 'OK') {
