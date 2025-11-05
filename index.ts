@@ -209,7 +209,8 @@ app.ws('/download/:id', async (ws, req) => {
     const videoSizeTotal = (selectedFormats.audioFormat.contentLength || 0) 
       + (selectedFormats.videoFormat.contentLength || 0)
 
-    if (videoSizeTotal > (1_048_576 * 150) && !config.whitelist.includes(req.params.id)) {
+    // 100MB
+    if (videoSizeTotal > (1_048_576 * 100) && !config.whitelist.includes(req.params.id)) {
       ws.send('Is this content considered high risk? If so, please email me at admin@preservetube.com.');
       ws.send('This video is too large, and unfortunately, Preservetube does not have unlimited storage.');
       return ws.close()
