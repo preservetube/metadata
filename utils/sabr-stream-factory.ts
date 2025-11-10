@@ -123,8 +123,7 @@ export async function createSabrStream(
   innertube: Innertube;
   streamResults: StreamResults;
 }> {
-  const json = await Bun.file('config.json').json()
-  const innertube = await Innertube.create({ cache: new UniversalCache(true), player_id: json.player_id });
+  const innertube = await Innertube.create({ cache: new UniversalCache(true) });
   const webPoTokenResult = await generateWebPoToken(innertube.session.context.client.visitorData || '');
   console.log(`debugging -> ${JSON.stringify(webPoTokenResult)}, ${videoId}`)
 
