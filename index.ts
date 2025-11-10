@@ -132,9 +132,15 @@ app.get('/videos/:id', async (req, res) => {
   }
 })
 
+interface Config {
+  whitelist: string[]
+  useCompanion: boolean
+  maxVideoSize: number // in MB
+}
+
 // @ts-ignore
 app.ws('/download/:id', async (ws, req) => {
-  const config = await Bun.file('config.json').json()
+  const config: Config = await Bun.file('config.json').json()
   const yt = await Innertube.create();
   let quality = '480p'
 
@@ -179,7 +185,7 @@ app.ws('/download/:id', async (ws, req) => {
     const videoSizeTotal = (selectedFormats.audioFormat.content_length || 0) 
       + (selectedFormats.videoFormat.content_length || 0)
 
-    if (videoSizeTotal > (1_048_576 * 150) && !config.whitelist.includes(req.params.id)) {
+    if (videoSizeTotal > (1_048_576 * config.maxVideoSize) && !config.whitelist.includes(req.params.id)) {
       ws.send('Is this content considered high risk? If so, please email me at admin@preservetube.com.');
       ws.send('This video is too large, and unfortunately, Preservetube does not have unlimited storage.');
       return ws.close()
@@ -205,12 +211,10 @@ app.ws('/download/:id', async (ws, req) => {
     const { streamResults } = await createSabrStream(req.params.id, streamOptions);
     const { videoStream, audioStream, selectedFormats } = streamResults;
 
-    const config = await Bun.file('config.json').json()
     const videoSizeTotal = (selectedFormats.audioFormat.contentLength || 0) 
       + (selectedFormats.videoFormat.contentLength || 0)
 
-    // 100MB
-    if (videoSizeTotal > (1_048_576 * 100) && !config.whitelist.includes(req.params.id)) {
+    if (videoSizeTotal > (1_048_576 * config.maxVideoSize) && !config.whitelist.includes(req.params.id)) {
       ws.send('Is this content considered high risk? If so, please email me at admin@preservetube.com.');
       ws.send('This video is too large, and unfortunately, Preservetube does not have unlimited storage.');
       return ws.close()
