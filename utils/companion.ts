@@ -19,24 +19,24 @@ export async function getVideoStreams(
   error?: string
 }> {
   const lowestStorageVideo = adaptiveFormats
-    .filter((format) => !!format.quality_label?.toLowerCase().includes(options.videoQuality?.toLowerCase() || ''))
-    .sort((a, b) => (a.content_length || 0) - (b.content_length || 0))?.[0]
+    .filter((format) => !!format.qualityLabel?.toLowerCase().includes(options.videoQuality?.toLowerCase() || ''))
+    .sort((a, b) => (parseInt(a.contentLength) || 0) - (parseInt(b.contentLength) || 0))?.[0]
   const lowestStorageAudio = adaptiveFormats
     .filter(f => {
-      if (f.is_auto_dubbed || !f.audio_quality) return false 
-      if (f.audio_track && !f.audio_track.display_name.endsWith('original')) return false
+      if (f.audioTrack?.isAutoDubbed || !f.audioQuality) return false 
+      if (f.audioTrack && !f.audioTrack.displayName.endsWith('original')) return false
       return true
     })
     .sort((a, b) => { // if the wanted audio quality isnt avalible, just accept smth else. but take the one requested if its there
-      const aMatches = a.audio_quality?.toLowerCase().includes(options.audioQuality?.toLowerCase() || '')
-      const bMatches = b.audio_quality?.toLowerCase().includes(options.audioQuality?.toLowerCase() || '')
+      const aMatches = a.audioQuality?.toLowerCase().includes(options.audioQuality?.toLowerCase() || '')
+      const bMatches = b.audioQuality?.toLowerCase().includes(options.audioQuality?.toLowerCase() || '')
 
       if (aMatches && !bMatches) return -1
       if (!aMatches && bMatches) return 1
 
-      return (a.content_length || Infinity) - (b.content_length || Infinity)
+      return (parseInt(a.contentLength) || Infinity) - (parseInt(b.contentLength) || Infinity)
     })
-    .sort((a, b) => (a.content_length || 0) - (b.content_length || 0))?.[0]
+    .sort((a, b) => (parseInt(a.contentLength) || 0) - (parseInt(b.contentLength) || 0))?.[0]
   const lowestOptions = {
     videoFormat: lowestStorageVideo?.itag,
     audioFormat: lowestStorageAudio?.itag
@@ -174,4 +174,16 @@ function secondsToTime(seconds: number) {
   const remainingSeconds = seconds % 60;
   const formattedSeconds = remainingSeconds < 10 ? '0' + remainingSeconds : remainingSeconds;
   return `${minutes}:${formattedSeconds}`;
+}
+
+export async function getInfo(videoId: string) {
+  const req = await fetch('http://127.0.0.1:8282/companion/youtubei/v1/player', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer EiChaeKiefei7Ahj' // this is internal. this is not a security issue.
+    },
+    body: JSON.stringify({ videoId })
+  })
+  return await req.json()
 }

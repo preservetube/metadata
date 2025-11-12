@@ -11,7 +11,7 @@ import {
   type DownloadOutput
 } from './utils/sabr-stream-factory.js';
 import type { SabrPlaybackOptions } from 'googlevideo/sabr-stream';
-import { getVideoStreams, downloadStream } from './utils/companion';
+import { getVideoStreams, downloadStream, getInfo } from './utils/companion';
 
 const ffmpeg = require('fluent-ffmpeg')
 const ffmpegStatic = require('ffmpeg-static')
@@ -51,39 +51,22 @@ app.get('/health', async (req, res) => {
 })
 
 app.get('/video/:id', async (req, res) => {
-  let error = ''
+  const info = await getInfo(req.params.id);
 
-  for (let retries = 0; retries < maxRetries; retries++) {
-    try {
-      const platform = platforms[retries % platforms.length];
-      const yt = await Innertube.create();
-      const info = await yt.getInfo(req.params.id, { // @ts-ignore
-        client: platform
-      });
-
-      if (!info) {
-        error = 'ErrorCantConnectToServiceAPI'
-        continue;
-      }
-      if (info.playability_status!.status !== 'OK') {
-        error = 'ErrorYTUnavailable'
-        continue;
-      }
-      if (info.basic_info.is_live) {
-        error = 'ErrorLiveVideo'
-        continue;
-      }
-      if (info.basic_info.title == 'Video Not Available') {
-        error = 'YoutubeIsFuckingWithMe'
-        continue;
-      }
-      return res.json(info)
-    } catch (error) {
-      continue
-    }
+  if (!info) {
+    return res.json({ error: 'ErrorCantConnectToServiceAPI' })
+  }
+  if (info.playabilityStatus!.status !== 'OK') {
+    return res.json({ error: 'ErrorYTUnavailable' })
+  }
+  if (info.videoDetails.isLiveContent) {
+    return res.json({ error: 'ErrorLiveVideo' })
+  }
+  if (info.videoDetails.title == 'Video Not Available') {
+    return res.json({ error: 'YoutubeIsFuckingWithMe' })
   }
 
-  res.json({ error: error || 'ErrorUnknown' })
+  return res.json(info)
 })
 
 app.get('/channel/:id', async (req, res) => {
@@ -141,27 +124,24 @@ interface Config {
 // @ts-ignore
 app.ws('/download/:id', async (ws, req) => {
   const config: Config = await Bun.file('config.json').json()
-  const yt = await Innertube.create();
   let quality = '480p'
 
-  const info = await yt.getInfo(req.params.id, {
-    client: 'TV_SIMPLY'
-  });
-  if (!info || info.basic_info.duration == undefined) {
+  const info = await getInfo(req.params.id);
+  if (!info || info.videoDetails.lengthSeconds == undefined) {
     ws.send('Unable to retrieve video info from YouTube. Please try again later.');
     return ws.close()
   }
   
-  if (info.basic_info.duration >= 900) quality = '360p' // 15min
+  if (parseInt(info.videoDetails.lengthSeconds) >= 900) quality = '360p' // 15min
   quality = getVideoQuality(info, quality)
 
-  if (info.playability_status?.status !== 'OK') {
+  if (info.playabilityStatus?.status !== 'OK') {
     ws.send(`This video is not available for download (${info.playability_status?.status} ${info.playability_status?.reason}).`);
     return ws.close()
-  } else if (info.basic_info.is_live) {
+  } else if (info.videoDetails.isLiveContent) {
     ws.send('This video is live, and cannot be downloaded.');
     return ws.close()
-  } else if (info.basic_info.id != req.params.id) {
+  } else if (info.videoDetails.videoId != req.params.id) {
     ws.send('This video is not available for download. Youtube is serving a different video.');
     return ws.close()
   } 
@@ -174,7 +154,7 @@ app.ws('/download/:id', async (ws, req) => {
       videoQuality: quality,
       audioQuality: 'AUDIO_QUALITY_LOW'
     };
-    const { streamResults, error } = await getVideoStreams(req.params.id, info.streaming_data!.adaptive_formats, streamOptions);
+    const { streamResults, error } = await getVideoStreams(req.params.id, info.streamingData!.adaptiveFormats, streamOptions);
     if (streamResults == false) {
       ws.send(error)
       return ws.close()
@@ -182,21 +162,21 @@ app.ws('/download/:id', async (ws, req) => {
 
     const { videoStreamUrl, audioStreamUrl, selectedFormats } = streamResults;
 
-    const videoSizeTotal = (selectedFormats.audioFormat.content_length || 0) 
-      + (selectedFormats.videoFormat.content_length || 0)
+    const videoSizeTotal = (parseInt(selectedFormats.audioFormat.contentLength) || 0) 
+      + (parseInt(selectedFormats.videoFormat.contentLength) || 0)
 
     if (videoSizeTotal > (1_048_576 * config.maxVideoSize) && !config.whitelist.includes(req.params.id)) {
       ws.send('Is this content considered high risk? If so, please email me at admin@preservetube.com.');
       ws.send('This video is too large, and unfortunately, Preservetube does not have unlimited storage.');
       return ws.close()
-    } else if (!selectedFormats.videoFormat.content_length) {
+    } else if (!selectedFormats.videoFormat.contentLength) {
       ws.send('Youtube isn\'t giving us enough information to be able to tell if we can process this video.')
       ws.send('Please try again later.')
       return ws.close()
     }
 
-    audioOutputStream = createOutputStream(req.params.id, selectedFormats.audioFormat.mime_type!);
-    videoOutputStream = createOutputStream(req.params.id, selectedFormats.videoFormat.mime_type!);
+    audioOutputStream = createOutputStream(req.params.id, selectedFormats.audioFormat.mimeType!);
+    videoOutputStream = createOutputStream(req.params.id, selectedFormats.videoFormat.mimeType!);
 
     await Promise.all([
       downloadStream(videoStreamUrl, selectedFormats.videoFormat, videoOutputStream.stream, ws, 'video'),
@@ -277,21 +257,21 @@ app.get('/getWebpageJson', async (req, res) => {
 })
 
 function getVideoQuality(json: any, quality: string) {
-  const adaptiveFormats = json['streaming_data']['adaptive_formats'];
-  let video = adaptiveFormats.find((f: any) => f.quality_label === quality && !f.has_audio);
+  const adaptiveFormats = json.streamingData.adaptiveFormats;
+  let video = adaptiveFormats.find((f: any) => f.qualityLabel === quality && !f.audioQuality);
 
   if (!video) {
     const target = parseInt(quality);
     video = adaptiveFormats // find the quality thats closest to the one we wanted
-      .filter((f: any) => !f.has_audio && f.quality_label)
+      .filter((f: any) => !f.audioQuality && f.qualityLabel)
       .reduce((prev: any, curr: any) => {
-        const currDiff = Math.abs(parseInt(curr.quality_label) - target);
-        const prevDiff = prev ? Math.abs(parseInt(prev.quality_label) - target) : Infinity;
+        const currDiff = Math.abs(parseInt(curr.qualityLabel) - target);
+        const prevDiff = prev ? Math.abs(parseInt(prev.qualityLabel) - target) : Infinity;
         return currDiff < prevDiff ? curr : prev;
       }, null);
   }
 
-  return video ? video.quality_label : null;
+  return video ? video.qualityLabel : null;
 }
 
 function mergeIt(audioPath: string, videoPath: string, outputPath: string, ws: any) {
