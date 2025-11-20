@@ -131,9 +131,6 @@ app.ws('/download/:id', async (ws, req) => {
     ws.send('Unable to retrieve video info from YouTube. Please try again later.');
     return ws.close()
   }
-  
-  if (parseInt(info.videoDetails.lengthSeconds) >= 900) quality = '360p' // 15min
-  quality = getVideoQuality(info, quality)
 
   if (info.playabilityStatus?.status !== 'OK') {
     ws.send(`This video is not available for download (${info.playability_status?.status} ${info.playability_status?.reason}).`);
@@ -145,6 +142,9 @@ app.ws('/download/:id', async (ws, req) => {
     ws.send('This video is not available for download. Youtube is serving a different video.');
     return ws.close()
   } 
+
+  if (parseInt(info.videoDetails.lengthSeconds) >= 900) quality = '360p' // 15min
+  quality = getVideoQuality(info, quality)
 
   let audioOutputStream: DownloadOutput | undefined;
   let videoOutputStream: DownloadOutput | undefined;
