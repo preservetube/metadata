@@ -133,7 +133,7 @@ app.ws('/download/:id', async (ws, req) => {
   }
 
   if (info.playabilityStatus?.status !== 'OK') {
-    ws.send(`This video is not available for download (${info.playability_status?.status} ${info.playability_status?.reason}).`);
+    ws.send(`This video is not available for download (${info.playabilityStatus?.status} ${info.playabilityStatus?.reason}).`);
     return ws.close()
   } else if (info.videoDetails.isLiveContent) {
     ws.send('This video is live, and cannot be downloaded.');
