@@ -1,5 +1,6 @@
 import { type WriteStream } from 'node:fs';
 import * as hr from '@tsmx/human-readable'
+import * as crypto from 'node:crypto';
 
 interface StreamResults {
   videoStreamUrl: string;
@@ -69,6 +70,10 @@ export async function getVideoStreams(
 }
 
 export async function downloadStream(streamUrl: string, format: any, stream: WriteStream, ws: any, type: string) {
+  const config = await Bun.file('config.json').json()
+  let proxy: undefined | string = undefined
+  if (config.proxy) proxy = config.proxy.replace('$$random$$', crypto.randomBytes(4).toString('hex'))
+  
   // get the final url of the stream, since it redirects
   let location = streamUrl
   let headResponse: Response | undefined;
@@ -86,6 +91,7 @@ export async function downloadStream(streamUrl: string, format: any, stream: Wri
       method: "HEAD",
       headers: headersToSend,
       redirect: "manual",
+      proxy
     });
     if (googlevideoResponse.status == 403) {
       throw new Error(`403 from google - ${await googlevideoResponse.text()}`)
@@ -119,6 +125,7 @@ export async function downloadStream(streamUrl: string, format: any, stream: Wri
       method: "POST",
       body: new Uint8Array([0x78, 0]), // protobuf: { 15: 0 } (no idea what it means but this is what YouTube uses),
       headers: headersToSend,
+      proxy
     });
     if (postResponse.status !== 200) {
       throw new Error("Non-200 response from google servers");
@@ -157,8 +164,7 @@ export async function downloadStream(streamUrl: string, format: any, stream: Wri
 }
 
 async function getStreamUrl(videoId: string, itag: number): Promise<string|false> {
-  const config = await Bun.file('config.json').json()
-  const req = await fetch(`http://${config.companionIp || '127.0.0.1'}:8282/companion/latest_version?id=${videoId}&itag=${itag}`, {
+  const req = await fetch(`http://127.0.0.1:8282/companion/latest_version?id=${videoId}&itag=${itag}`, {
     redirect: 'manual'
   })
 
