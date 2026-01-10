@@ -14,11 +14,10 @@ import type { SabrPlaybackOptions } from 'googlevideo/sabr-stream';
 import { getVideoStreams, downloadStream, getInfo } from './utils/companion';
 
 const ffmpeg = require('fluent-ffmpeg')
-const ffmpegStatic = require('ffmpeg-static')
 
 const app = express();
 require('express-ws')(app)
-ffmpeg.setFfmpegPath(ffmpegStatic)
+ffmpeg.setFfmpegPath('/usr/local/bin/ffmpeg')
 
 const maxRetries = 5
 const platforms = ['IOS', 'ANDROID', 'YTSTUDIO_ANDROID', 'YTMUSIC_ANDROID']
