@@ -164,7 +164,8 @@ export async function downloadStream(streamUrl: string, format: any, stream: Wri
 }
 
 async function getStreamUrl(videoId: string, itag: number): Promise<string|false> {
-  const req = await fetch(`http://127.0.0.1:8282/companion/latest_version?id=${videoId}&itag=${itag}`, {
+  const config = await Bun.file('config.json').json()
+  const req = await fetch(`http://${config.companionIp || '127.0.0.1'}:8282/companion/latest_version?id=${videoId}&itag=${itag}`, {
     redirect: 'manual'
   })
 
@@ -183,7 +184,8 @@ function secondsToTime(seconds: number) {
 }
 
 export async function getInfo(videoId: string) {
-  const req = await fetch('http://127.0.0.1:8282/companion/youtubei/v1/player', {
+  const config = await Bun.file('config.json').json()
+  const req = await fetch(`http://${config.companionIp || '127.0.0.1'}:8282/companion/youtubei/v1/player`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
