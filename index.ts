@@ -58,7 +58,7 @@ app.get('/video/:id', async (req, res) => {
   if (info.playabilityStatus!.status !== 'OK') {
     return res.json({ error: 'ErrorYTUnavailable' })
   }
-  if (info.videoDetails.isLiveContent) {
+  if (info.videoDetails.isLive) {
     return res.json({ error: 'ErrorLiveVideo' })
   }
   if (info.videoDetails.title == 'Video Not Available') {
