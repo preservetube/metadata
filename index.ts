@@ -126,6 +126,11 @@ app.ws('/download/:id', async (ws, req) => {
   let quality = '480p'
 
   const info = await getInfo(req.params.id);
+  if (info.playabilityStatus?.errorScreen?.playerErrorMessageRenderer?.subreason?.simpleText) {
+    ws.send(`This video is not available for download (${info.playabilityStatus.errorScreen.playerErrorMessageRenderer.subreason.simpleText}).`);
+    return ws.close()
+  }
+  
   if (!info || info.videoDetails.lengthSeconds == undefined) {
     ws.send('Unable to retrieve video info from YouTube. Please try again later.');
     return ws.close()
