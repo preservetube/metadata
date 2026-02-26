@@ -104,7 +104,11 @@ app.get('/videos/:id', async (req, res) => {
     }
 
     return res.json(videos)
-  } catch (e) {
+  } catch (e:any) {
+    if (e.message.includes('Tab "videos" not found')) {
+      return res.json([])
+    }
+    
     res.json(false)
   }
 
