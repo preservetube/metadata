@@ -212,6 +212,7 @@ app.ws('/download/:id', async (ws, req) => {
       return ws.close()
     }
 
+    ws.send(`VIDEOSIZE-${videoSizeTotal}`)
     audioOutputStream = createOutputStream(req.params.id, selectedFormats.audioFormat.mimeType!);
     videoOutputStream = createOutputStream(req.params.id, selectedFormats.videoFormat.mimeType!);
 
