@@ -91,25 +91,34 @@ app.get('/channel/:id', async (req, res) => {
 
 app.get('/videos/:id', async (req, res) => {
   try {
-    const videos = [];
-    const yt = await Innertube.create();
-    const channel = await yt.getChannel(req.params.id);
-    let json = await channel.getVideos();
+    let videos: any[] = [];
 
-    videos.push(...json.videos);
+    for (let attempt = 0; attempt < 3; attempt++) {
+      videos = [];
 
-    while (json.has_continuation && videos.length < 60) {
-      json = await getNextPage(json);
+      const yt = await Innertube.create();
+      const channel = await yt.getChannel(req.params.id);
+
+      let json = await channel.getVideos();
       videos.push(...json.videos);
+
+      while (json.has_continuation && videos.length < 60) {
+        json = await getNextPage(json);
+        videos.push(...json.videos);
+      }
+
+      if (videos.length) break;
     }
 
-    return res.json(videos)
-  } catch (e:any) {
+    return res.json(videos);
+  } catch (e: any) {
+    console.log(e);
+
     if (e.message.includes('Tab "videos" not found')) {
-      return res.json([])
+      return res.json([]);
     }
-    
-    res.json(false)
+
+    return res.json(false);
   }
 
   async function getNextPage(json: any) {
@@ -134,7 +143,7 @@ app.ws('/download/:id', async (ws, req) => {
     ws.send(`This video is not available for download (${info.playabilityStatus.errorScreen.playerErrorMessageRenderer.subreason.simpleText}).`);
     return ws.close()
   }
-  
+
   if (!info || info.videoDetails.lengthSeconds == undefined) {
     ws.send('Unable to retrieve video info from YouTube. Please try again later.');
     return ws.close()
@@ -149,7 +158,7 @@ app.ws('/download/:id', async (ws, req) => {
   } else if (info.videoDetails.videoId != req.params.id) {
     ws.send('This video is not available for download. Youtube is serving a different video.');
     return ws.close()
-  } 
+  }
 
   if (parseInt(info.videoDetails.lengthSeconds) >= 900) quality = '360p' // 15min
   quality = getVideoQuality(info, quality)
@@ -170,7 +179,7 @@ app.ws('/download/:id', async (ws, req) => {
 
     const { videoStreamUrl, audioStreamUrl, selectedFormats } = streamResults;
 
-    const videoSizeTotal = (parseInt(selectedFormats.audioFormat.contentLength) || 0) 
+    const videoSizeTotal = (parseInt(selectedFormats.audioFormat.contentLength) || 0)
       + (parseInt(selectedFormats.videoFormat.contentLength) || 0)
 
     if (videoSizeTotal > (1_048_576 * config.maxVideoSize) && !config.whitelist.includes(req.params.id)) {
@@ -200,7 +209,7 @@ app.ws('/download/:id', async (ws, req) => {
     const { streamResults } = await createSabrStream(req.params.id, streamOptions);
     const { videoStream, audioStream, selectedFormats } = streamResults;
 
-    const videoSizeTotal = (selectedFormats.audioFormat.contentLength || 0) 
+    const videoSizeTotal = (selectedFormats.audioFormat.contentLength || 0)
       + (selectedFormats.videoFormat.contentLength || 0)
 
     if (videoSizeTotal > (1_048_576 * config.maxVideoSize) && !config.whitelist.includes(req.params.id)) {
